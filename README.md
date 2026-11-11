@@ -27,16 +27,9 @@ LiteLoaderQQNT 是 QQNT 的插件加载器，一般在 QQNT 的环境内简称�
     git clone --depth 1 https://github.com/LiteLoaderQQNT/LiteLoaderQQNT.git
     ```
 
-### 在 Windows 上安装
+### 使用 LiteLoaderQQNT-Installer 安装
 
-1. 准备环境：需要 [Node.js](https://nodejs.org/)（用于按你当前的 QQ 版本生成 `app.asar`）。如果你已经拿到与当前 QQ 版本匹配的预构建 `app.asar`，可跳过 Node。
-2. 进入 LiteLoaderQQNT 目录，用 PowerShell 运行安装脚本（`-QQRoot` 可省略，脚本会自动探测 QQ 安装目录；加 `-Force` 跳过确认）：
-
-    ```powershell
-    powershell -ExecutionPolicy Bypass -File scripts\install.ps1 -QQRoot "D:\Program Files\Tencent\QQNT" -Force
-    ```
-
-3. 脚本会做两件事：把 LiteLoaderQQNT 本体同步到 `QQNT\resources\app\LiteLoaderQQNT`，并把影子 `app.asar` 放到 `versions\<版本>\resources\app.asar`。它不会修改任何被校验的文件。
+前往 [LiteLoaderQQNT-Installer](https://github.com/coolxitech/LiteLoaderQQNT_Installer) 下载安装器，运行安装器按提示完成安装。
 
 ### 更改插件数据目录 （可选）
 
@@ -51,17 +44,11 @@ LiteLoaderQQNT 是 QQNT 的插件加载器，一般在 QQNT 的环境内简称�
 
 ### 卸载
 
-用 PowerShell 运行卸载脚本，删除影子入口即可完全还原（被校验文件从未被改动）：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\uninstall.ps1 -QQRoot "D:\Program Files\Tencent\QQNT" -Force
-```
-
-加 `-RemoveBody` 会同时删除 LiteLoaderQQNT 本体目录；加 `-RemoveData` 会同时删除数据目录。
+使用 LiteLoaderQQNT-Installer 卸载即可完全还原（被校验文件从未被改动）。
 
 ### QQ 升级后
 
-QQ 升级会新建版本目录，需要重新放置一次影子入口（本体与数据不受影响）。重新运行一次 `install.ps1` 即可，脚本会自动定位新版本目录并按新版本重新生成 `app.asar`。
+QQ 升级会新建版本目录，本体与数据不受影响。重新运行 LiteLoaderQQNT-Installer 安装一次即可。
 
 ## 插件
 
