@@ -4,5 +4,7 @@ application
 .openbitfun/
 /.openbitfun/search/flashgrep-index/
 .idea/
-# Markdown 文档不纳入版本控制
-*.md
+# Markdown 文档：README 保留跟踪，其余不纳入版本控制
+docs/
+AGENTS.md
+CONTRIBUTING.md
