@@ -1,0 +1,102 @@
+name: Publish Release
+
+# 推送 v 开头的 tag（如 v1.4.2）时自动打包并发布 Release
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  # 发布前语法门禁：任一 JS 文件语法错误即终止，不发布
+  check-syntax:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+
+      - name: Check syntax for all JavaScript files
+        run: |
+          find src -name "*.js" -exec node -c {} +
+
+  # 打包发布资产：zip 顶层目录为 LiteLoaderQQNT/，包含完整源码
+  build:
+    needs: check-syntax
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Copy workspace to dist/LiteLoaderQQNT
+        run: |
+          mkdir -p dist/LiteLoaderQQNT
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.gitignore' \
+            --exclude='.github' \
+            --exclude='dist' \
+            --exclude='plugins' \
+            --exclude='data' \
+            --exclude='application' \
+            --exclude='node_modules' \
+            --exclude='.openbitfun' \
+            --exclude='.idea' \
+            ./ dist/LiteLoaderQQNT/
+
+      - name: Create release zip
+        run: |
+          cd dist
+          zip -r LiteLoaderQQNT.zip LiteLoaderQQNT
+
+      - name: Upload release asset
+        uses: actions/upload-artifact@v7
+        with:
+          name: LiteLoaderQQNT
+          path: dist/LiteLoaderQQNT.zip
+          if-no-files-found: error
+
+  # 校验 tag 与 package.json 版本一致后发布 Release
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Verify tag matches package.json version
+        id: version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          if [ "${TAG_VERSION}" != "${PKG_VERSION}" ]; then
+            echo "::error::Tag version '${TAG_VERSION}' does not match package.json version '${PKG_VERSION}'"
+            exit 1
+          fi
+          echo "version=${PKG_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Download release asset
+        uses: actions/download-artifact@v8
+        with:
+          name: LiteLoaderQQNT
+          path: dist
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: LiteLoaderQQNT ${{ steps.version.outputs.version }}
+          files: dist/LiteLoaderQQNT.zip
+          generate_release_notes: true
