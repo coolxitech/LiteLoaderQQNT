@@ -75,6 +75,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Verify tag matches package.json version
         id: version
@@ -93,6 +95,20 @@ jobs:
           name: LiteLoaderQQNT
           path: dist
 
+      - name: Generate release body
+        run: |
+          PREV_TAG="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)"
+          if [ -n "${PREV_TAG}" ]; then
+            RANGE="${PREV_TAG}..HEAD"
+          else
+            RANGE="HEAD"
+          fi
+          {
+            echo "## 提交描述"
+            echo
+            git log --pretty=format:"- %B" "${RANGE}"
+          } > release_body.md
+
       - name: Publish Release
         uses: softprops/action-gh-release@v3
         with:
@@ -100,3 +116,5 @@ jobs:
           name: LiteLoaderQQNT ${{ steps.version.outputs.version }}
           files: dist/LiteLoaderQQNT.zip
           generate_release_notes: true
+          body_path: release_body.md
+          append_body: true
