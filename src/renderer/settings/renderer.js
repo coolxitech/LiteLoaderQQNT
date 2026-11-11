@@ -1,10 +1,13 @@
 import default_config from "../../common/static/config.json" with {type: "json"};
+import { initMarket } from "./market.js";
+import { default_icon, normalizeVersion } from "./utils.js";
 
 
 export function initView(view, html) {
     view.innerHTML = html;
     initVersions(view);
     initPluginList(view);
+    initMarket(view);
     initPath(view);
     initAbout(view);
 }
@@ -34,14 +37,28 @@ async function initVersions(view) {
         update_btn.value = null;
         update_btn.removeEventListener("click", jump_link);
         update_btn.removeEventListener("click", try_again);
-        const repo_url = LiteLoader.package.liteloader.repository.url;
-        const release_latest_url = `${repo_url.slice(0, repo_url.lastIndexOf(".git"))}/releases/latest`;
-        fetch(release_latest_url).then((res) => {
-            const new_version = res.url.slice(res.url.lastIndexOf("/") + 1);
-            if (LiteLoader.versions.liteloader != new_version) {
+        const check = LiteLoader.api.update?.check;
+        if (!check) {
+            title.textContent = "检查更新时遇到错误：当前 LiteLoaderQQNT 未提供版本检测接口";
+            update_btn.textContent = "重新发现";
+            update_btn.value = null;
+            update_btn.addEventListener("click", try_again);
+            return;
+        }
+        check().then((result) => {
+            if (!result?.success) {
+                title.textContent = `检查更新时遇到错误：${result?.message ?? "未知错误"}`;
+                update_btn.textContent = "重新发现";
+                update_btn.value = null;
+                update_btn.removeEventListener("click", jump_link);
+                update_btn.addEventListener("click", try_again);
+                return;
+            }
+            const new_version = result.version;
+            if (normalizeVersion(LiteLoader.versions.liteloader) != normalizeVersion(new_version)) {
                 title.textContent = `发现 LiteLoaderQQNT 新版本 ${new_version}`;
                 update_btn.textContent = "去瞅一眼";
-                update_btn.value = res.url;
+                update_btn.value = result.url;
                 update_btn.removeEventListener("click", try_again);
                 update_btn.addEventListener("click", jump_link);
             }
@@ -65,7 +82,7 @@ async function initVersions(view) {
 
 
 async function initPluginList(view) {
-    const plugin_item_template = view.querySelector("#plugin-item");
+    const plugin_item_template = view.querySelector("#plugin-entry");
     const plugin_install_button = view.querySelector(".plugins .plugin .install setting-button");
     const plugin_loader_switch = view.querySelector(".plugins .plugin .loader setting-switch");
     const plugin_lists = {
@@ -100,7 +117,6 @@ async function initPluginList(view) {
         framework: 0
     }
 
-    const default_icon = `local://root/src/common/static/default.png`;
     for (const [slug, plugin] of Object.entries(LiteLoader.plugins)) {
         if (plugin.incompatible) continue;
 
@@ -164,7 +180,7 @@ async function initPluginList(view) {
         });
         plugin_item.classList.toggle("disabled", !manager_modal_switch.getActive());
 
-        manager_modal_data.setActive(!!config.deleting_plugins?.[slug]?.data_path);
+        manager_modal_data.setActive(!!config.deleting_plugins?.[slug]?.data);
         manager_modal_data.addEventListener("click", () => {
             const isActive = manager_modal_data.getActive();
             manager_modal_data.setActive(!isActive);
@@ -173,7 +189,7 @@ async function initPluginList(view) {
         });
         plugin_item.classList.toggle("deleted", manager_modal_data.getActive());
 
-        manager_modal_self.setActive(!!config.deleting_plugins?.[slug]);
+        manager_modal_self.setActive(!!config.deleting_plugins?.[slug]?.self);
         manager_modal_self.addEventListener("click", () => {
             const isActive = manager_modal_self.getActive();
             manager_modal_self.setActive(!isActive);
@@ -184,7 +200,6 @@ async function initPluginList(view) {
 
         plugin_list.append(plugin_item);
 
-        plugin_counts.total++;
         plugin_counts[plugin.manifest.type]++;
     }
 

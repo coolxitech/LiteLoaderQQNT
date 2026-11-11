@@ -1,6 +1,8 @@
 const path = require("path");
 const electron = require("electron");
 const store = require("./store.js");
+const market = require("./market.js");
+const update = require("./update.js");
 
 const LiteLoader = Object.create(null);
 
@@ -41,6 +43,16 @@ LiteLoader.api.plugin = Object.create(null);
 LiteLoader.api.plugin.install = store.installPlugin;
 LiteLoader.api.plugin.delete = store.deletePlugin;
 LiteLoader.api.plugin.disable = store.disablePlugin;
+LiteLoader.api.plugin.market = {
+    list: (refresh) => market.list(LiteLoader, refresh),
+    installed: () => market.installed(LiteLoader),
+    install: (slug, url) => market.install(LiteLoader, slug, url),
+    uninstall: (slug, removeData) => market.uninstall(LiteLoader, slug, removeData)
+};
+
+// 加载器自身版本检测（同样走镜像）
+LiteLoader.api.update = Object.create(null);
+LiteLoader.api.update.check = (refresh) => update.checkUpdate(LiteLoader, refresh);
 
 Object.defineProperty(globalThis, "LiteLoader", {
     get() {
@@ -55,6 +67,13 @@ electron.ipcMain.on("LiteLoader.LiteLoader.LiteLoader", (event, method, args) =>
         method.reduce((obj, key) => obj?.[key], LiteLoader)?.(...args) :
         JSON.parse(JSON.stringify(LiteLoader));
 });
+
+// 插件市场是异步的，上面的 sendSync 桥承载不了 Promise，单独开 4 个 invoke 通道
+electron.ipcMain.handle("LiteLoader.Market.list", (_event, refresh) => market.list(LiteLoader, refresh));
+electron.ipcMain.handle("LiteLoader.Market.installed", () => market.installed(LiteLoader));
+electron.ipcMain.handle("LiteLoader.Market.install", (_event, slug, url) => market.install(LiteLoader, slug, url));
+electron.ipcMain.handle("LiteLoader.Market.uninstall", (_event, slug, removeData) => market.uninstall(LiteLoader, slug, removeData));
+electron.ipcMain.handle("LiteLoader.Update.check", (_event, refresh) => update.checkUpdate(LiteLoader, refresh));
 
 electron.protocol.registerSchemesAsPrivileged([
     {

@@ -1,5 +1,6 @@
 import { Runtime } from "../../runtime.js"
 import { initView, appropriateIcon } from "../../settings/renderer.js";
+import { default_thumb } from "../../settings/utils.js";
 
 const liteloader_nav_bar = document.createElement("div");
 const liteloader_setting_view = document.createElement("div");
@@ -35,7 +36,6 @@ function init() {
 }
 
 function add(plugin) {
-    const default_thumb = `local://root/src/common/static/default.svg`;
     const plugin_thumb = `local:///${plugin.path.plugin}/${plugin.manifest?.thumb}`;
     const thumb = plugin.manifest.thumb ? plugin_thumb : default_thumb;
     const nav_item = document.querySelector(".setting-tab .nav-item").cloneNode(true);
